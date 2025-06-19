@@ -383,7 +383,7 @@ This project is open source and available under the MIT License.
 
 For questions, issues, or contributions:
 - Create an issue in the project repository
-- Contact the development team
+- Make a PR 😊
 - Check the documentation for common solutions
 
 ---
