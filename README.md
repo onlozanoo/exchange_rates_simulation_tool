@@ -96,16 +96,46 @@ python main.py
 - Shows key percentiles (P1, P5, P50, P95, P99)
 - Includes mean line for reference
 
-#### 📋 Detailed Statistics (`Ver estadísticas`)
-- Comprehensive table with all scenarios
-- Includes mean, standard deviation, percentiles, min/max
-- Opens in separate window for detailed analysis
-
 #### 🎯 Comprehensive Summary (`Ver resumen completo`)
 - Complete statistics for selected scenario
 - Includes VaR calculations in COP
 - Shows implied forward rate using CIP
 - Formatted display with thousands separators
+
+#### 💼 Forward Contract Evaluation (`Evaluar Forward`)
+- **CIP Analysis**: Compares offered forward with Covered Interest Parity
+- **UIP+PPP Analysis**: Evaluates against expected spot rate from simulation
+- **Protection Assessment**: Determines if forward provides downside protection
+- **Uncertainty Analysis**: Checks if forward reduces risk reasonably
+- **Final Recommendation**: Clear accept/negotiate/reject decision
+- **Comprehensive Report**: Detailed analysis with reasoning
+
+### 5. Forward Evaluation Logic
+
+The forward evaluation uses a sophisticated two-tier analysis:
+
+#### **Tier 1: CIP (Covered Interest Parity)**
+- Compares offered forward with theoretical CIP forward
+- **✅ Favorable**: Forward ≤ CIP (fair or advantageous)
+- **❌ Unfavorable**: Forward > CIP (potential overpricing)
+
+#### **Tier 2: UIP+PPP Model (Expected Spot)**
+- Uses simulation mean as expected future spot rate
+- **Protection Analysis**:
+  - ✅ Forward < expected spot = Provides protection
+  - ❌ Forward ≥ expected spot = No protection
+- **Uncertainty Analysis**:
+  - ✅ Within P5-P95 = Reasonable uncertainty reduction
+  - ⚠️ Above P95 = Likely overpaying
+  - ✅ Below P5 = Very conservative
+
+#### **Final Decision Logic**
+**✅ ACCEPT** if at least one condition is met:
+- Forward ≤ CIP (covered interest parity)
+- Forward < expected spot (protection)
+
+**⚠️ NEGOTIATE/REJECT** if:
+- Forward > CIP AND Forward > expected spot
 
 ## 🔬 Technical Details
 
@@ -156,6 +186,39 @@ P99: 4,309.93
 VaR_5pct_COP: 4,212.54
 VaR_1pct_COP: 4,201.00
 Forward implícito: 4,171.10
+```
+
+### Forward Evaluation Example
+```
+EVALUACIÓN DE CONTRATO FORWARD
+==================================================
+ESCENARIO: Normal
+Spot actual: 4,000.00 COP/USD
+Forward ofrecido: 4,100.00 COP/USD
+
+📊 ANÁLISIS CIP (PARIDAD CUBIERTA)
+----------------------------------------
+Forward CIP implícito: 4,171.10 COP/USD
+❌ Forward > CIP: POSIBLE SOBREPRECIO
+Diferencia: -71.10 COP/USD
+
+📈 ANÁLISIS UIP + PPP (SPOT ESPERADO)
+==================================================
+Spot esperado (media): 4,248.51 COP/USD
+P5: 4,212.54 COP/USD
+P95: 4,289.92 COP/USD
+
+✅ Forward < spot esperado: TE PROTEGE
+✅ Dentro P5-P95: REDUCE INCERTIDUMBRE RAZONABLEMENTE
+Diferencia vs spot esperado: -148.51 COP/USD
+
+🎯 RECOMENDACIÓN FINAL
+==============================
+
+✅ ACEPTA EL CONTRATO
+
+Razones:
+• Forward < spot esperado (protección)
 ```
 
 ## 🛠️ Advanced Usage
@@ -211,20 +274,23 @@ scenarios = {
 #### Visualization
 - [x] Impact curve charts with confidence intervals
 - [x] Distribution histograms with percentiles
-- [x] Detailed statistics tables
 - [x] Comprehensive summary reports
+- [x] Forward contract evaluation system
 
 #### Risk Analysis
 - [x] Value at Risk (VaR) calculations
 - [x] Expected Shortfall analysis
 - [x] Tail risk assessment
 - [x] Forward rate calculations using CIP
+- [x] Forward contract evaluation against CIP and UIP+PPP models
 
 #### User Interface
 - [x] Tkinter GUI with intuitive controls
 - [x] Parameter change detection
 - [x] View persistence (stays on current visualization)
 - [x] Proper window closing handling
+- [x] Forward price input with validation
+- [x] Comprehensive evaluation reports
 
 #### Code Quality
 - [x] Backend/frontend separation
