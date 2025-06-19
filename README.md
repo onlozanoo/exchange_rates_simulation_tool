@@ -87,22 +87,34 @@ python main.py
 ### 4. Visualization Options
 
 #### 📈 Impact Curve (`Ver curva impacto`)
+
+<img width="956" alt="Image" src="https://github.com/user-attachments/assets/cc5d9564-00b2-4b63-8a88-41902449a7b5" />
+
 - Shows mean exchange rate for each scenario
 - Displays 5th and 95th percentile confidence intervals
 - Compares relative impact of different shocks
 
 #### 📊 Distribution Histogram (`Ver dispersión`)
+
+<img width="959" alt="Image" src="https://github.com/user-attachments/assets/68372fde-c53d-40ab-99c6-909abae566fd" />
+
 - Histogram of simulated exchange rates for selected scenario
 - Shows key percentiles (P1, P5, P50, P95, P99)
 - Includes mean line for reference
 
-#### 🎯 Comprehensive Summary (`Ver resumen completo`)
+#### 🎯 Comprehensive Summary (`Ver resumen completo`) **Still in progress**
+
+<img width="368" alt="Image" src="https://github.com/user-attachments/assets/2aaa30f6-6584-484a-b257-58c4a313c08e" />
+
 - Complete statistics for selected scenario
 - Includes VaR calculations in COP
 - Shows implied forward rate using CIP
 - Formatted display with thousands separators
 
 #### 💼 Forward Contract Evaluation (`Evaluar Forward`)
+
+<img width="523" alt="Image" src="https://github.com/user-attachments/assets/15fda231-8284-4a17-a287-05f2a3826a55" />
+
 - **CIP Analysis**: Compares offered forward with Covered Interest Parity
 - **UIP+PPP Analysis**: Evaluates against expected spot rate from simulation
 - **Protection Assessment**: Determines if forward provides downside protection
