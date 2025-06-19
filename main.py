@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 import sys
 
 # Import the simulation engine
@@ -94,6 +94,10 @@ def mostrar_curva_impacto():
     ax.set_title("Curva de Impacto de Noticias en Tipo de Cambio")
     ax.set_ylabel("COP/USD")
     ax.grid(True)
+    for label in ax.get_xticklabels():
+        label.set_rotation(0)
+        label.set_ha('center')
+
     actualizar_grafico(fig)
 
 def mostrar_dispersión():
@@ -113,6 +117,9 @@ def mostrar_dispersión():
     ax.set_xlabel("COP/USD")
     ax.set_ylabel("Frecuencia")
     ax.grid(True, alpha=0.3)
+    for label in ax.get_xticklabels():
+        label.set_rotation(0)
+        label.set_ha('center')
     
     # Add percentiles to the plot
     mean_val = np.mean(datos)
@@ -128,40 +135,6 @@ def mostrar_dispersión():
     ax.legend()
     
     actualizar_grafico(fig)
-
-def mostrar_estadisticas():
-    """Display detailed statistics table"""
-    global current_view
-    current_view = 'estadisticas'
-    
-    if df_resultados is None or params_changed():
-        ejecutar_simulacion()
-    
-    # Create a new window for statistics
-    stats_window = tk.Toplevel(root)
-    stats_window.title("Estadísticas Detalladas")
-    stats_window.geometry("600x400")
-    
-    # Create text widget to display statistics
-    text_widget = tk.Text(stats_window, wrap=tk.WORD, padx=10, pady=10)
-    text_widget.pack(fill=tk.BOTH, expand=True)
-    
-    # Format and display statistics
-    stats_text = "ESTADÍSTICAS POR ESCENARIO\n"
-    stats_text += "=" * 50 + "\n\n"
-    
-    for _, row in df_resultados.iterrows():
-        stats_text += f"ESCENARIO: {row['Escenario']}\n"
-        stats_text += f"  Media: {row['Media']:.2f} COP/USD\n"
-        stats_text += f"  Desv. Est.: {row['Std']:.2f}\n"
-        stats_text += f"  Percentil 5: {row['P5']:.2f}\n"
-        stats_text += f"  Percentil 95: {row['P95']:.2f}\n"
-        stats_text += f"  Mínimo: {row['Min']:.2f}\n"
-        stats_text += f"  Máximo: {row['Max']:.2f}\n"
-        stats_text += "-" * 30 + "\n\n"
-    
-    text_widget.insert(tk.END, stats_text)
-    text_widget.config(state=tk.DISABLED)
 
 def mostrar_resumen_completo():
     """Display comprehensive summary with forward rates and VaR"""
@@ -209,6 +182,134 @@ def mostrar_resumen_completo():
     
     text_widget.insert(tk.END, summary_text)
     text_widget.config(state=tk.DISABLED)
+
+def evaluar_forward():
+    """Evaluate forward contract against CIP and UIP+PPP model"""
+    global current_view
+    current_view = 'evaluacion'
+    
+    if df_resultados is None or params_changed():
+        ejecutar_simulacion()
+    
+    # Get current parameters
+    params = get_current_params()
+    S_t = params['S_t']
+    i_dom = np.mean(params['i_dom_range'])
+    i_for = np.mean(params['i_for_range'])
+    
+    # Get offered forward price
+    try:
+        forward_ofrecido = float(entry_forward.get())
+    except ValueError:
+        messagebox.showerror("Error", "Por favor ingrese un precio forward válido")
+        return
+    
+    escenario = combo_escenario.get()
+    
+    # Get comprehensive summary
+    resumen = simulator.get_scenario_summary(escenario, S_t, i_dom, i_for)
+    
+    if resumen is None:
+        return
+    
+    # Get key values
+    cip_forward = resumen['Forward_implicito']
+    spot_esperado = resumen['Media']
+    p5 = resumen['P5']
+    p95 = resumen['P95']
+    
+    # Create evaluation window
+    eval_window = tk.Toplevel(root)
+    eval_window.title(f"Evaluación Forward - {escenario}")
+    eval_window.geometry("700x600")
+    
+    # Create text widget
+    text_widget = tk.Text(eval_window, wrap=tk.WORD, padx=15, pady=15, font=("Arial", 10))
+    text_widget.pack(fill=tk.BOTH, expand=True)
+    
+    # Build evaluation text
+    eval_text = f"EVALUACIÓN DE CONTRATO FORWARD\n"
+    eval_text += "=" * 50 + "\n"
+    
+    # Current parameters
+    eval_text += f"ESCENARIO: {escenario}\n"
+    eval_text += f"Spot actual: {S_t:,.2f} COP/USD\n"
+    eval_text += f"Forward ofrecido: {forward_ofrecido:,.2f} COP/USD\n\n"
+    
+    # CIP Analysis
+    eval_text += "📊 ANÁLISIS CIP (PARIDAD CUBIERTA)\n"
+    eval_text += "-" * 40 + "\n"
+    eval_text += f"Forward CIP implícito: {cip_forward:,.2f} COP/USD\n"
+    
+    if forward_ofrecido <= cip_forward:
+        eval_text += "✅ Forward ≤ CIP: CONTRATO JUSTO O FAVORABLE\n"
+        cip_favorable = True
+    else:
+        eval_text += "❌ Forward > CIP: POSIBLE SOBREPRECIO\n"
+        cip_favorable = False
+    
+    eval_text += f"Diferencia: {forward_ofrecido - cip_forward:+,.2f} COP/USD\n\n"
+    
+    # UIP+PPP Analysis
+    eval_text += "📈 ANÁLISIS UIP + PPP (SPOT ESPERADO)\n"
+    eval_text += "=" * 50 + "\n"
+    eval_text += f"Spot esperado (media): {spot_esperado:,.2f} COP/USD\n"
+    eval_text += f"P5: {p5:,.2f} COP/USD\n"
+    eval_text += f"P95: {p95:,.2f} COP/USD\n"
+    
+    # Protection analysis
+    if forward_ofrecido < spot_esperado:
+        eval_text += "✅ Forward < spot esperado: TE PROTEGE\n"
+        protege = True
+    else:
+        eval_text += "❌ Forward ≥ spot esperado: NO TE PROTEGE\n"
+        protege = False
+    
+    # Uncertainty reduction analysis
+    if p5 <= forward_ofrecido <= p95:
+        eval_text += "✅ Dentro P5-P95: REDUCE INCERTIDUMBRE RAZONABLEMENTE\n"
+        incertidumbre_ok = True
+    elif forward_ofrecido > p95:
+        eval_text += "⚠️ Mayor que P95: PROBABLEMENTE PAGAS DE MÁS\n"
+        incertidumbre_ok = False
+    else:
+        eval_text += "✅ Menor que P5: MUY CONSERVADOR\n"
+        incertidumbre_ok = True
+    
+    eval_text += f"Diferencia vs spot esperado: {forward_ofrecido - spot_esperado:+,.2f} COP/USD\n\n"
+    
+    # Final recommendation
+    eval_text += "🎯 RECOMENDACIÓN FINAL\n"
+    eval_text += "=" * 30 + "\n\n"
+    
+    # Decision logic
+    acepta_condicion1 = forward_ofrecido <= cip_forward
+    acepta_condicion2 = forward_ofrecido < spot_esperado
+    
+    if acepta_condicion1 or acepta_condicion2:
+        eval_text += "✅ ACEPTA EL CONTRATO\n\n"
+        eval_text += "Razones:\n"
+        if acepta_condicion1:
+            eval_text += "• Forward ≤ CIP (paridad cubierta)\n"
+        if acepta_condicion2:
+            eval_text += "• Forward < spot esperado (protección)\n"
+    else:
+        eval_text += "⚠️ NEGOCIA O RECHAZA\n\n"
+        eval_text += "Razones:\n"
+        eval_text += "• Forward > CIP (sobreprecio)\n"
+        eval_text += "• Forward > spot esperado (sin protección)\n"
+    
+    eval_text += "\n" + "=" * 50 + "\n"
+    eval_text += "Nota: Esta evaluación se basa en el modelo UIP+PPP y paridad cubierta de tasas de interés (CIP)."
+    
+    # Insert text and configure
+    text_widget.insert(tk.END, eval_text)
+    text_widget.config(state=tk.DISABLED)
+    
+    # Add scrollbar
+    scrollbar = ttk.Scrollbar(eval_window, orient="vertical", command=text_widget.yview)
+    scrollbar.pack(side="right", fill="y")
+    text_widget.configure(yscrollcommand=scrollbar.set)
 
 def actualizar_grafico(fig):
     """Update the plot in the GUI"""
@@ -267,21 +368,28 @@ var_sesgo = tk.BooleanVar(value=True)
 ttk.Checkbutton(frame_inputs, text="Sesgo en tasa doméstica", 
                 variable=var_sesgo).grid(row=6, column=0, columnspan=2)
 
+# Forward price input
+ttk.Label(frame_inputs, text="Forward Price (COP/USD):", 
+          font=("Arial", 10, "bold")).grid(row=6, column=2, columnspan=2, pady=(5,0))
+entry_forward = ttk.Entry(frame_inputs, font=("Arial", 10, "bold"))
+entry_forward.insert(0, "4000")
+entry_forward.grid(row=7, column=2, columnspan=2, pady=(0,5))
+
 # Scenario selector and buttons
 combo_escenario = ttk.Combobox(frame_inputs, 
                                values=["Normal", "Subida tasas BanRep", 
                                       "Desanclaje inflacionario", "Choque externo"])
 combo_escenario.set("Normal")
-combo_escenario.grid(row=7, column=0, columnspan=2)
+combo_escenario.grid(row=8, column=0, columnspan=2)
 
 ttk.Button(frame_inputs, text="Ver curva impacto", 
-           command=mostrar_curva_impacto).grid(row=7, column=2)
+           command=mostrar_curva_impacto).grid(row=8, column=2)
 ttk.Button(frame_inputs, text="Ver dispersión", 
-           command=mostrar_dispersión).grid(row=7, column=3)
-ttk.Button(frame_inputs, text="Ver estadísticas", 
-           command=mostrar_estadisticas).grid(row=8, column=2, columnspan=2)
+           command=mostrar_dispersión).grid(row=8, column=3)
 ttk.Button(frame_inputs, text="Ver resumen completo", 
            command=mostrar_resumen_completo).grid(row=9, column=2, columnspan=2)
+ttk.Button(frame_inputs, text="Evaluar Forward", 
+           command=evaluar_forward).grid(row=10, column=2, columnspan=2)
 
 # Auto-execute simulation on startup
 root.after(100, mostrar_curva_impacto)
